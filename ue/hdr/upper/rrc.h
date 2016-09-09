@@ -37,6 +37,7 @@
 
 #include <map>
 
+#include <vector>
 namespace srsue {
 
 // RRC states (3GPP 36.331 v10.0.0)
@@ -44,6 +45,7 @@ typedef enum{
     RRC_STATE_IDLE = 0,
     RRC_STATE_SIB1_SEARCH,
     RRC_STATE_SIB2_SEARCH,
+    RRC_STATE_OPTIONAL_SIB_SEARCH,
     RRC_STATE_WAIT_FOR_CON_SETUP,
     RRC_STATE_COMPLETING_SETUP,
     RRC_STATE_RRC_CONNECTED,
@@ -56,6 +58,13 @@ static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "COMPLETING SETUP",
                                                             "RRC CONNECTED"};
 
+struct optional_sib {
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_ENUM tag;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_UNION sib_struct;
+  LIBLTE_RRC_SI_PERIODICITY_ENUM periodicity;
+  uint32_t x;
+  uint8_t n_of_sibs;
+};
 
 class rrc
     :public rrc_interface_nas
@@ -124,6 +133,9 @@ private:
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT                         dl_dcch_msg;
 
   pthread_t             sib_search_thread;
+
+  std::vector<optional_sib> optional_sibs;
+  uint8_t current_index;
 
   // RRC constants and timers 
   srslte::mac_interface_timers *mac_timers;

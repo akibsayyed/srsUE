@@ -260,17 +260,180 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu)
       mac->bcch_stop_rx();
       //TODO: Use all SIB1 info
 
+      //starting from 1 because 0 is SIB2 - mandatory, already taken care of
+      for (int i = 1; i < sib1.N_sched_info; i++) {
+        for (int j = 0; j < sib1.sched_info[i].N_sib_mapping_info; j++) {
+          optional_sib current_sib = optional_sib();
+          // x = (n-1)*w where n is the position (Item0 - positiion: 1 etc.) of the item in schedulingList, w is windowLength - 3GPP TS 36.331 - 5.2.3
+          current_sib.x = i*liblte_rrc_si_window_length_num[sib1.si_window_length];
+          //rrc_log->console("Current_sib.x=%d\n", current_sib.x);
+          //sib_type + 1 because here sib2 is defined as 0 in the header, but in SIB1's  schedulingInfoList 0 is sib3!
+          switch(sib1.sched_info[i].sib_mapping_info[j].sib_type+1) {
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3:
+              rrc_log->console("Scheduling Info - SIB3 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB3 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3;
+              current_sib.sib_struct.sib3 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4:
+              rrc_log->console("Scheduling Info - SIB4 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB4 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4;
+              current_sib.sib_struct.sib4 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_5:
+              rrc_log->console("Scheduling Info - SIB5 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB5 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_5;
+              current_sib.sib_struct.sib5 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_5_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_6:
+              rrc_log->console("Scheduling Info - SIB6 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB6 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_6;
+              current_sib.sib_struct.sib6 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_6_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_7:
+              rrc_log->console("Scheduling Info - SIB7 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB7 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_7;
+              current_sib.sib_struct.sib7 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_7_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_8:
+              rrc_log->console("Scheduling Info - SIB8 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB8 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_8;
+              current_sib.sib_struct.sib8 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_8_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+/* Following structures are currently not implemented in openLTE, uncomment them once they get implemented
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9:
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9;
+              current_sib.sib_struct.sib9 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break; */
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_10:
+              rrc_log->console("Scheduling Info - SIB10 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB10 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_10;
+              //current_sib.sib_struct.sib10 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_10_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+/*            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_11:
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_11;
+              current_sib.sib_struct.sib11 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_11_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_12:
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_12;
+              current_sib.sib_struct.sib12 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_12_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+*/
+            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13:
+              rrc_log->console("Scheduling Info - SIB13 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              rrc_log->debug("Scheduling Info - SIB13 detected with periodicity: %d\n", sib1.sched_info[i].si_periodicity);
+              current_sib.tag = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13;
+              current_sib.sib_struct.sib13 = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT();
+              current_sib.periodicity = sib1.sched_info[i].si_periodicity;
+              optional_sibs.push_back(current_sib);
+              break;
+          }
+        }
+      }
+
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[0].sib_type && RRC_STATE_SIB2_SEARCH == state) {
       // Handle SIB2
       memcpy(&sib2, &dlsch_msg.sibs[0].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
       rrc_log->console("SIB2 received\n");
       rrc_log->info("SIB2 received\n");
-      state = RRC_STATE_WAIT_FOR_CON_SETUP;
-      mac->bcch_stop_rx();
-      apply_sib2_configs();
-      send_con_request();
+      if (optional_sibs.size() > 0) {
+        rrc_log->console("Optional SIBs detected, decoding them\n");
+        rrc_log->info("Optional SIBs detected, decoding them\n");
+        current_index = 0;
+        state = RRC_STATE_OPTIONAL_SIB_SEARCH;
+      } else {
+        state = RRC_STATE_WAIT_FOR_CON_SETUP;
+        mac->bcch_stop_rx();
+        apply_sib2_configs();
+        send_con_request();
+      }
+    } else if(RRC_STATE_OPTIONAL_SIB_SEARCH == state && optional_sibs.size() > 0) {
+//      rrc_log->console("Received DLSCH_MSG, #of SIBs: %d\n", dlsch_msg.N_sibs);
+      for (int i=0; i < dlsch_msg.N_sibs; i++) {
+  //      rrc_log->console("  Type of SIB #%d: %d\n", i, dlsch_msg.sibs[i].sib_type);
+        if(dlsch_msg.sibs[i].sib_type == optional_sibs[current_index].tag) {
+          switch(optional_sibs[current_index].tag) {
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3:
+                rrc_log->console("SIB3 received\n");
+                memcpy(&optional_sibs[current_index].sib_struct.sib3, &dlsch_msg.sibs[0].sib.sib3, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT));
+                break;
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4:
+                rrc_log->console("SIB4 received\n");
+                memcpy(&optional_sibs[current_index].sib_struct.sib4, &dlsch_msg.sibs[0].sib.sib4, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4_STRUCT));
+                break;
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_5:
+                rrc_log->console("SIB5 received\n");
+                memcpy(&optional_sibs[current_index].sib_struct.sib5, &dlsch_msg.sibs[0].sib.sib5, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_5_STRUCT));
+                break;
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_6:
+                rrc_log->console("SIB6 received\n");
+                memcpy(&optional_sibs[current_index].sib_struct.sib6, &dlsch_msg.sibs[0].sib.sib6, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_6_STRUCT));
+                break;
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_7:
+                rrc_log->console("SIB7 received\n");
+                memcpy(&optional_sibs[current_index].sib_struct.sib7, &dlsch_msg.sibs[0].sib.sib7, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_7_STRUCT));
+                break;
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_8:
+                rrc_log->console("SIB8 received\n");
+                memcpy(&optional_sibs[current_index].sib_struct.sib8, &dlsch_msg.sibs[0].sib.sib8, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_8_STRUCT));
+                break;
+/* Currently not implemented structures in openLTE -> uncomment once implemented
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9:
+                memcpy(&optional_sibs[current_index].sib_struct.sib9, &dlsch_msg.sibs[0].sib.sib9, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT));
+                break; */
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_10:
+                //memcpy(&optional_sibs[current_index].sib_struct.sib10, &dlsch_msg.sibs[0].sib.sib10, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_10_STRUCT));
+                break;
+/*            case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_11:
+                memcpy(&optional_sibs[current_index].sib_struct.sib11, &dlsch_msg.sibs[0].sib.sib11, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_11_STRUCT));
+                break;
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_12:
+                memcpy(&optional_sibs[current_index].sib_struct.sib12, &dlsch_msg.sibs[0].sib.sib12, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_12_STRUCT));
+                break;
+*/
+              case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13:
+                rrc_log->console("SIB13 received\n");
+                memcpy(&optional_sibs[current_index].sib_struct.sib13, &dlsch_msg.sibs[0].sib.sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT));
+                break;
+          }
+          if (current_index < optional_sibs.size()-1) {
+            current_index++;
+          } else {
+            state = RRC_STATE_WAIT_FOR_CON_SETUP;
+            mac->bcch_stop_rx();
+            apply_sib2_configs();
+            send_con_request();
+         }
+      }
     }
   }
+ }
 }
 
 void rrc::write_pdu_pcch(byte_buffer_t *pdu)
@@ -457,7 +620,7 @@ void rrc::send_con_restablish_request()
   rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
   mac->set_param(srsue::mac_interface_params::CONTENTION_ID, uecri);
 
-  rrc_log->info("Sending RRC Connection Resetablishment Request on SRB0\n");
+  rrc_log->info("Sending RRC Connection Reestablishment Request on SRB0\n");
   state = RRC_STATE_WAIT_FOR_CON_SETUP;
   pdcp->write_sdu(RB_ID_SRB0, pdcp_buf);
 }
@@ -893,6 +1056,19 @@ void rrc::sib_search()
       mac->bcch_start_rx(si_win_start, si_win_len);
       rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
                      si_win_start, si_win_len);
+
+      break;
+    case RRC_STATE_OPTIONAL_SIB_SEARCH:
+      // Instruct MAC to look for optional SIBs
+      usleep(10000);
+      tti          = mac->get_current_tti();
+      period       = liblte_rrc_si_periodicity_num[optional_sibs[current_index].periodicity];
+      si_win_start = sib_start_tti(tti, period, optional_sibs[current_index].x);
+      si_win_len   = liblte_rrc_si_window_length_num[sib1.si_window_length];
+
+      mac->bcch_start_rx(si_win_start, si_win_len);
+      rrc_log->debug("Instructed MAC to search for an optional SIB, win_start=%d, win_len=%d, x=%d, index=%d\n",
+                     si_win_start, si_win_len, optional_sibs[current_index].x, current_index);
 
       break;
     default:

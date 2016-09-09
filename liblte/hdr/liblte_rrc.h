@@ -5828,6 +5828,7 @@ static const char liblte_rrc_sys_info_block_type_text[LIBLTE_RRC_SYS_INFO_BLOCK_
                                                                                                      "10", "11", "12", "13",
                                                                                                       "1"};
 static const uint8 liblte_rrc_sys_info_block_type_num[LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_N_ITEMS] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1};
+
 // Structs
 typedef union{
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;

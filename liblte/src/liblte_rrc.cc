@@ -10759,6 +10759,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_sys_info_msg(LIBLTE_RRC_SYS_INFO_MSG_STRUCT *s
                 case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_7:
                 case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9:
                 case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_10:
+                     break;
                 case LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_11:
                 default:
                     printf("ERROR: Not handling sib type %u\n", sibs->sibs[i].sib_type);
