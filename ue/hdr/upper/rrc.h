@@ -36,8 +36,10 @@
 #include "common/security.h"
 
 #include <map>
-
 #include <vector>
+
+using srslte::byte_buffer_t;
+
 namespace srsue {
 
 // RRC states (3GPP 36.331 v10.0.0)
@@ -95,9 +97,10 @@ public:
   void timer_expired(uint32_t timeout_id);
 
   void test_con_restablishment(); 
+  void liblte_rrc_log(char* str);
   
 private:
-  buffer_pool          *pool;
+  srslte::buffer_pool  *pool;
   srslte::log          *rrc_log;
   phy_interface_rrc    *phy;
   mac_interface_rrc    *mac;
@@ -106,7 +109,7 @@ private:
   nas_interface_rrc    *nas;
   usim_interface_rrc   *usim;
 
-  bit_buffer_t          bit_buf;
+  srslte::bit_buffer_t  bit_buf;
 
   boost::mutex          mutex;
   
@@ -200,11 +203,12 @@ private:
   void          add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
   void          release_drb(uint8_t lcid);
   void          apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
+  void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults); 
+  void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults); 
   
   // Helpers for setting default values 
   void          set_phy_default_pucch_srs();
-  void          set_phy_default_uci();
-  void          set_phy_default_powerctrl();
+  void          set_phy_default();
   void          set_mac_default();
   void          set_rrc_default(); 
   

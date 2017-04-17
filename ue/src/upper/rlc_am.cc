@@ -35,7 +35,7 @@ using namespace srslte;
 
 namespace srsue{
 
-rlc_am::rlc_am()
+rlc_am::rlc_am() : tx_sdu_queue(16)
 {
   tx_sdu = NULL;
   rx_sdu = NULL;
@@ -179,26 +179,32 @@ void rlc_am::write_sdu(byte_buffer_t *sdu)
  * MAC interface
  ***************************************************************************/
 
-uint32_t rlc_am::get_buffer_state()
+uint32_t rlc_am::get_total_buffer_state()
 {
   boost::lock_guard<boost::mutex> lock(mutex);
+  uint32_t n_bytes = 0;
+  uint32_t n_sdus  = 0;
 
   // Bytes needed for status report
   check_reordering_timeout();
-  if(do_status && !status_prohibited())
-    return prepare_status();
+  if(do_status && !status_prohibited()) {
+    n_bytes += prepare_status();
+    log->debug("Buffer state - status report: %d bytes\n", n_bytes);
+  }
 
   // Bytes needed for retx
   if(retx_queue.size() > 0) {
     rlc_amd_retx_t retx = retx_queue.front();
+    log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
-        return required_buffer_size(retx);
+        n_bytes += required_buffer_size(retx);
+        log->debug("Buffer state - retx: %d bytes\n", n_bytes);
     }
   }
 
   // Bytes needed for tx SDUs
-  uint32_t n_sdus  = tx_sdu_queue.size();
-  uint32_t n_bytes = tx_sdu_queue.size_bytes();
+  n_sdus  = tx_sdu_queue.size();
+  n_bytes += tx_sdu_queue.size_bytes();
   if(tx_sdu)
   {
     n_sdus++;
@@ -210,8 +216,57 @@ uint32_t rlc_am::get_buffer_state()
     n_bytes += ((n_sdus-1)*1.5)+0.5;
 
   // Room needed for fixed header?
-  if(n_bytes > 0)
+  if(n_bytes > 0) {
     n_bytes += 2;
+    log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
+  }
+
+  return n_bytes;
+}
+
+uint32_t rlc_am::get_buffer_state()
+{
+  boost::lock_guard<boost::mutex> lock(mutex);
+  uint32_t n_bytes = 0;
+  uint32_t n_sdus  = 0;
+
+  // Bytes needed for status report
+  check_reordering_timeout();
+  if(do_status && !status_prohibited()) {
+    n_bytes = prepare_status();
+    log->debug("Buffer state - status report: %d bytes\n", n_bytes);
+    return n_bytes;
+  }
+
+  // Bytes needed for retx
+  if(retx_queue.size() > 0) {
+    rlc_amd_retx_t retx = retx_queue.front();
+    log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
+    if(tx_window.end() != tx_window.find(retx.sn)) {
+        n_bytes = required_buffer_size(retx);
+        log->debug("Buffer state - retx: %d bytes\n", n_bytes);
+        return n_bytes;
+    }
+  }
+
+  // Bytes needed for tx SDUs
+  n_sdus  = tx_sdu_queue.size();
+  n_bytes = tx_sdu_queue.size_bytes();
+  if(tx_sdu)
+  {
+    n_sdus++;
+    n_bytes += tx_sdu->N_bytes;
+  }
+
+  // Room needed for header extensions? (integer rounding)
+  if(n_sdus > 1)
+    n_bytes += ((n_sdus-1)*1.5)+0.5;
+
+  // Room needed for fixed header?
+  if(n_bytes > 0) {
+    n_bytes += 2;
+    log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
+  }
 
   return n_bytes;
 }
@@ -220,7 +275,7 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   boost::lock_guard<boost::mutex> lock(mutex);
 
-  log->info("MAC opportunity - %d bytes\n", nof_bytes);
+  log->debug("MAC opportunity - %d bytes\n", nof_bytes);
 
   // Tx STATUS if requested
   if(do_status && !status_prohibited())
@@ -361,7 +416,8 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Is resegmentation needed?
-  if(retx.is_segment || tx_window[retx.sn].buf->N_bytes > nof_bytes) {
+  if(retx.is_segment || required_buffer_size(retx) > nof_bytes) {
+    log->debug("%s build_retx_pdu - resegmentation required\n", rb_id_text[lcid]);
     return build_segment(payload, nof_bytes, retx);
   }
 
@@ -385,7 +441,7 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
   tx_window[retx.sn].retx_count++;
   if(tx_window[retx.sn].retx_count >= max_retx_thresh)
     rrc->max_retx_attempted();
-  log->info("%s Retx SN %d, retx count: %d\n",
+  log->info("%s Retx PDU scheduled for tx. SN: %d, retx count: %d\n",
             rb_id_text[lcid], retx.sn, tx_window[retx.sn].retx_count);
 
   debug_state();
@@ -468,6 +524,8 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     new_header.lsf = 1;
     if(rlc_am_end_aligned(old_header.fi))
       new_header.fi &= RLC_FI_FIELD_NOT_START_ALIGNED;   // segment is end aligned
+  } else if(retx_queue.front().so_end == retx.so_end) {
+    retx_queue.pop_front();
   } else {
     retx_queue.front().is_segment = true;
     retx_queue.front().so_start = retx.so_end;
@@ -482,11 +540,18 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
   uint32_t len  = retx.so_end - retx.so_start;
   memcpy(ptr, data, len);
 
-  log->info("%s Retx data segment SN %d, SO: %d\n",
+  log->info("%s Retx PDU segment scheduled for tx. SN: %d, SO: %d\n",
             rb_id_text[lcid], retx.sn, retx.so_start);
 
   debug_state();
-  return (ptr-payload) + len;
+  int pdu_len = (ptr-payload) + len;
+  if(pdu_len > nof_bytes) {
+    log->error("%s Retx PDU segment length error. Available: %d, Used: %d\n",
+               rb_id_text[lcid], nof_bytes, pdu_len);
+    log->debug("%s Retx PDU segment length error. Header len: %d, Payload len: %d, N_li: %d\n",
+               rb_id_text[lcid], (ptr-payload), len, new_header.N_li);
+  }
+  return pdu_len;
 
 }
 
@@ -494,11 +559,15 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   if(!tx_sdu && tx_sdu_queue.size() == 0)
   {
-    log->info("No data available to be sent");
+    log->info("No data available to be sent\n");
     return 0;
   }
 
   byte_buffer_t *pdu = pool->allocate();
+  if (!pdu) {
+    log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
+    exit(-1);
+  }
   rlc_amd_pdu_header_t header;
   header.dc   = RLC_DC_FIELD_DATA_PDU;
   header.rf   = 0;
@@ -522,6 +591,9 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
+  log->debug("%s Building PDU - pdu_space: %d, head_len: %d \n",
+            rb_id_text[lcid], pdu_space, head_len);
+
   // Check for SDU segment
   if(tx_sdu)
   {
@@ -544,6 +616,9 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     else
       pdu_space = 0;
     header.fi |= RLC_FI_FIELD_NOT_START_ALIGNED; // First byte does not correspond to first byte of SDU
+
+    log->debug("%s Building PDU - added SDU segment (len:%d) - pdu_space: %d, head_len: %d \n",
+              rb_id_text[lcid], to_move, pdu_space, head_len);
   }
 
   // Pull SDUs from queue
@@ -552,7 +627,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     if(last_li > 0)
       header.li[header.N_li++] = last_li;
     head_len = rlc_am_packed_length(&header);
-    if(head_len > pdu_space) {
+    if(head_len >= pdu_space) {
       header.N_li--;
       break;
     }
@@ -575,6 +650,9 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       pdu_space -= to_move;
     else
       pdu_space = 0;
+
+    log->debug("%s Building PDU - added SDU segment (len:%d) - pdu_space: %d, head_len: %d \n",
+              rb_id_text[lcid], to_move, pdu_space, head_len);
   }
 
   if(tx_sdu)
@@ -595,6 +673,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Set SN
   header.sn = vt_s;
   vt_s = (vt_s + 1)%MOD;
+  log->info("%s PDU scheduled for tx. SN: %d\n", rb_id_text[lcid], header.sn);
 
   // Place PDU in tx_window, write header and TX
   tx_window[header.sn].buf        = pdu;
@@ -641,6 +720,11 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
   // Write to rx window
   rlc_amd_rx_pdu_t pdu;
   pdu.buf = pool->allocate();
+  if (!pdu.buf) {
+    log->console("Fatal Error: Could not allocate PDU in handle_data_pdu()\n");
+    exit(-1);
+  }
+
   memcpy(pdu.buf->msg, payload, nof_bytes);
   pdu.buf->N_bytes  = nof_bytes;
   pdu.header        = header;
@@ -808,7 +892,11 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
             retx.is_segment = status.nacks[j].has_so;
             if(retx.is_segment) {
               retx.so_start = status.nacks[j].so_start;
-              retx.so_end   = status.nacks[j].so_end;
+              if(status.nacks[j].so_end == 0x7FFF) {
+                retx.so_end = tx_window.find(i)->second.buf->N_bytes;
+              }else{
+                retx.so_end   = status.nacks[j].so_end + 1;
+              }
             } else {
               retx.so_start = 0;
               retx.so_end   = tx_window.find(i)->second.buf->N_bytes;
@@ -843,9 +931,13 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_am::reassemble_rx_sdus()
 {
-  if(!rx_sdu)
+  if(!rx_sdu) {
     rx_sdu = pool->allocate();
-
+    if (!rx_sdu) {
+      log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
+      exit(-1);
+    }
+  }
   // Iterate through rx_window, assembling and delivering SDUs
   while(rx_window.end() != rx_window.find(vr_r))
   {
@@ -861,6 +953,11 @@ void rlc_am::reassemble_rx_sdus()
       rx_sdu->timestamp = bpt::microsec_clock::local_time();
       pdcp->write_pdu(lcid, rx_sdu);
       rx_sdu = pool->allocate();
+      if (!rx_sdu) {
+        log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+      exit(-1);
+      }
+
     }
 
     // Handle last segment
@@ -1033,10 +1130,10 @@ int rlc_am::required_buffer_size(rlc_amd_retx_t retx)
     lower += old_header.li[i];
   }
 
-  if(tx_window[retx.sn].buf->N_bytes != retx.so_end) {
-    if(new_header.N_li > 0)
-      new_header.N_li--; // No li for last segment
-  }
+//  if(tx_window[retx.sn].buf->N_bytes != retx.so_end) {
+//    if(new_header.N_li > 0)
+//      new_header.N_li--; // No li for last segment
+//  }
 
   return rlc_am_packed_length(&new_header) + (retx.so_end-retx.so_start);
 }
@@ -1324,7 +1421,12 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status)
     ss << ", NACK_SN = ";
     for(int i=0; i<status->N_nack; i++)
     {
-      ss << "[" << status->nacks[i].nack_sn << "]";
+      if(status->nacks[i].has_so) {
+        ss << "[" << status->nacks[i].nack_sn << " " << status->nacks[i].so_start \
+           << ":" << status->nacks[i].so_end << "]";
+      }else{
+        ss << "[" << status->nacks[i].nack_sn << "]";
+      }
     }
   }
   return ss.str();

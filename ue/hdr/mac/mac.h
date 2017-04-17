@@ -29,7 +29,6 @@
 
 #include "common/log.h"
 #include "phy/phy.h"
-#include "mac/mac_params.h"
 #include "mac/dl_harq.h"
 #include "mac/ul_harq.h"
 #include "common/timers.h"
@@ -56,7 +55,7 @@ class mac
 {
 public:
   mac();
-  bool init(phy_interface *phy, rlc_interface_mac *rlc, rrc_interface_mac* rrc, srslte::log *log_h);
+  bool init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac* rrc, srslte::log *log_h);
   void stop();
 
   void get_metrics(mac_metrics_t &m);
@@ -83,9 +82,15 @@ public:
   void reconfiguration(); 
   void reset(); 
 
-  /******** MAC parameters  ****************/ 
-  void    set_param(mac_interface_params::mac_param_t param, int64_t value); 
-  int64_t get_param(mac_interface_params::mac_param_t param);
+  /******** set/get MAC configuration  ****************/ 
+  void set_config(mac_cfg_t *mac_cfg);
+  void get_config(mac_cfg_t *mac_cfg);
+  void set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *main_cfg);
+  void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index);
+  void set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT *sr_cfg);
+  void set_contention_id(uint64_t uecri);
+  
+  void get_rntis(ue_rnti_t *rntis);
   
   void timer_expired(uint32_t timer_id); 
   void start_pcap(srslte::mac_pcap* pcap);
@@ -116,11 +121,16 @@ private:
 
   // Interaction with PHY 
   srslte::tti_sync_cv   ttisync; 
-  phy_interface        *phy_h; 
+  phy_interface_mac    *phy_h; 
   rlc_interface_mac    *rlc_h; 
+  rrc_interface_mac    *rrc_h; 
   srslte::log          *log_h;
   
-  mac_params    params_db; 
+  // MAC configuration 
+  mac_cfg_t     config; 
+
+  // UE-specific RNTIs 
+  ue_rnti_t     uernti; 
   
   uint32_t      tti; 
   bool          started; 

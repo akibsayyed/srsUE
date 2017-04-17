@@ -31,7 +31,6 @@
 
 #include "phy/phy.h"
 #include "common/log.h"
-#include "mac/mac_params.h"
 #include "common/qbuff.h"
 #include "common/timers.h"
 #include "mac/mux.h"
@@ -61,7 +60,7 @@ class ra_proc : public srslte::timer_callback
       first_rar_received        = false; 
       phy_h                     = NULL; 
       log_h                     = NULL; 
-      params_db                 = NULL; 
+      mac_cfg                   = NULL; 
       timers_db                 = NULL; 
       mux_unit                  = NULL; 
       demux_unit                = NULL; 
@@ -74,10 +73,17 @@ class ra_proc : public srslte::timer_callback
       rar_grant_tti             = 0; 
       msg3_flushed              = false; 
     };
-    void init(phy_interface *phy_h, rrc_interface_mac *rrc_, srslte::log *log_h, mac_params *params_db, srslte::timers *timers_db, mux *mux_unit, demux *demux_unit);
+    void init(phy_interface_mac *phy_h, 
+              rrc_interface_mac *rrc_, 
+              srslte::log *log_h, 
+              mac_interface_rrc::ue_rnti_t *rntis, 
+              mac_interface_rrc::mac_cfg_t *mac_cfg, 
+              srslte::timers *timers_db, 
+              mux *mux_unit, 
+              demux *demux_unit);
     void reset();
     void start_pdcch_order();
-    void start_mac_order();
+    void start_mac_order(uint32_t msg_len_bits = 56);
     void step(uint32_t tti);
     bool is_successful(); 
     bool is_response_error(); 
@@ -113,15 +119,12 @@ private:
     srslte::rar_pdu rar_pdu_msg; 
     
     // Random Access parameters provided by higher layers defined in 5.1.1
-    // They are read from params_db during initialization init()    
     uint32_t configIndex;
     uint32_t nof_preambles; 
     uint32_t nof_groupA_preambles;
     uint32_t nof_groupB_preambles;
     uint32_t messagePowerOffsetGroupB;
     uint32_t messageSizeGroupA;
-    uint32_t Pcmax;
-    uint32_t deltaPreambleMsg3;
     uint32_t responseWindowSize;
     uint32_t powerRampingStep;
     uint32_t preambleTransMax;
@@ -130,6 +133,7 @@ private:
     uint32_t contentionResolutionTimer; 
     uint32_t maskIndex; 
     int      preambleIndex;    
+    uint32_t new_ra_msg_len; 
     
     // Internal variables
     uint32_t preambleTransmissionCounter; 
@@ -167,16 +171,17 @@ private:
     bool        first_rar_received; 
     void        read_params();
     
-    phy_interface   *phy_h;
-    srslte::log     *log_h;
-    mac_params      *params_db;
-    srslte::timers  *timers_db;
-    mux             *mux_unit;
-    demux           *demux_unit;
+    phy_interface_mac *phy_h;
+    srslte::log       *log_h;
+    srslte::timers    *timers_db;
+    mux               *mux_unit;
+    demux             *demux_unit;
     srslte::mac_pcap  *pcap;
     rrc_interface_mac *rrc;
 
-        
+    mac_interface_rrc::ue_rnti_t *rntis;
+    mac_interface_rrc::mac_cfg_t *mac_cfg;
+    
     uint64_t    transmitted_contention_id;
     uint16_t    transmitted_crnti; 
     

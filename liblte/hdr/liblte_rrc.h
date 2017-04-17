@@ -71,6 +71,10 @@
 
 static const uint8 liblte_rrc_test_fill[8] = {1,0,1,0,0,1,0,1};
 
+typedef void (*log_handler_t)(void *ctx, char *str);
+
+void liblte_rrc_log_register_handler(void *ctx, log_handler_t handler); 
+
 /*******************************************************************************
                               INFORMATION ELEMENT DECLARATIONS
 *******************************************************************************/
@@ -3754,6 +3758,7 @@ typedef enum{
 }LIBLTE_RRC_TIME_ALIGNMENT_TIMER_ENUM;
 static const char liblte_rrc_time_alignment_timer_text[LIBLTE_RRC_TIME_ALIGNMENT_TIMER_N_ITEMS][20] = {   "sf500",    "sf750",   "sf1280",   "sf1920",
                                                                                                          "sf2560",   "sf5120",  "sf10240", "INFINITY"};
+static const int liblte_rrc_time_alignment_timer_num[LIBLTE_RRC_TIME_ALIGNMENT_TIMER_N_ITEMS] = {   500,    750,   1280,   1920, 2560,   5120,  10240, -1};
 typedef enum{
     LIBLTE_RRC_PERIODIC_PHR_TIMER_SF10 = 0,
     LIBLTE_RRC_PERIODIC_PHR_TIMER_SF20,

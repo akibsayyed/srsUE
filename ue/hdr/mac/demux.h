@@ -33,7 +33,6 @@
 #include "common/log.h"
 #include "common/qbuff.h"
 #include "common/timers.h"
-#include "mac/mac_params.h"
 #include "common/pdu.h"
 
 /* Logical Channel Demultiplexing and MAC CE dissassemble */   
@@ -45,7 +44,7 @@ class demux : public srslte::pdu_queue::process_callback
 {
 public:
   demux();
-  void init(phy_interface* phy_h_, rlc_interface_mac *rlc, srslte::log* log_h_, srslte::timers* timers_db_);
+  void init(phy_interface_mac* phy_h_, rlc_interface_mac *rlc, srslte::log* log_h_, srslte::timers* timers_db_);
 
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t pid, uint32_t len);
@@ -75,7 +74,7 @@ private:
   
   bool       is_uecrid_successful; 
     
-  phy_interface     *phy_h; 
+  phy_interface_mac *phy_h; 
   srslte::log       *log_h;
   srslte::timers    *timers_db;
   rlc_interface_mac *rlc;

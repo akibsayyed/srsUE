@@ -109,26 +109,9 @@ typedef struct {
 }gui_args_t;
 
 typedef struct {
-  float prach_gain;
-  int pdsch_max_its;
-  bool attach_enable_64qam; 
-  int nof_phy_threads;  
-  std::string equalizer_mode; 
-  int cqi_max; 
-  int cqi_offset; 
-  int cqi_fixed; 
-  int cqi_random_ms; 
-  int cqi_period_ms; 
-  float cqi_period_duty; 
-  float snr_ema_coeff; 
-  std::string snr_estim_alg; 
-  bool cfo_integer_enabled; 
-  float cfo_correct_tol_hz; 
-  int time_correct_period; 
-  bool sfo_correct_disable; 
-  std::string sss_algorithm; 
-  float estimator_fil_w; 
-  float metrics_period_secs;
+  phy_args_t phy; 
+  float      metrics_period_secs;
+  bool pregenerate_signals;
 }expert_args_t;
 
 typedef struct {
@@ -187,18 +170,18 @@ private:
   srsue::gw         gw;
   srsue::usim       usim;
 
-  srsue::logger     logger;
-  srsue::log_filter rf_log;
-  srsue::log_filter phy_log;
-  srsue::log_filter mac_log;
-  srsue::log_filter rlc_log;
-  srsue::log_filter pdcp_log;
-  srsue::log_filter rrc_log;
-  srsue::log_filter nas_log;
-  srsue::log_filter gw_log;
-  srsue::log_filter usim_log;
+  srslte::logger     logger;
+  srslte::log_filter rf_log;
+  srslte::log_filter phy_log;
+  srslte::log_filter mac_log;
+  srslte::log_filter rlc_log;
+  srslte::log_filter pdcp_log;
+  srslte::log_filter rrc_log;
+  srslte::log_filter nas_log;
+  srslte::log_filter gw_log;
+  srslte::log_filter usim_log;
 
-  srsue::buffer_pool *pool;
+  srslte::buffer_pool *pool;
 
   all_args_t       *args;
   bool              started;
@@ -207,7 +190,6 @@ private:
   srslte::LOG_LEVEL_ENUM level(std::string l);
   
   bool check_srslte_version();
-  void set_expert_parameters();
 };
 
 } // namespace srsue

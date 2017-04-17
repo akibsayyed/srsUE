@@ -41,7 +41,7 @@ void mac_pcap::enable(bool en)
 void mac_pcap::open(const char* filename, uint32_t ue_id)
 {
   pcap_file = MAC_LTE_PCAP_Open(filename);
-  ue_id = ue_id; 
+  this->ue_id = ue_id; 
   enable_write = true; 
 }
 void mac_pcap::close()
@@ -97,4 +97,3 @@ void mac_pcap::write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok
 
   
 }
-

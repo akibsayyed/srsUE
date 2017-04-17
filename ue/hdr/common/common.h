@@ -39,7 +39,7 @@
                               DEFINES
 *******************************************************************************/
 
-#define SRSUE_UE_CATEGORY     5
+#define SRSUE_UE_CATEGORY     4
 
 #define SRSUE_N_SRB           3
 #define SRSUE_N_DRB           8
@@ -57,7 +57,7 @@ namespace bpt = boost::posix_time;
                               TYPEDEFS
 *******************************************************************************/
 
-namespace srsue {
+namespace srslte {
 
 typedef enum{
   ERROR_NONE = 0,
@@ -114,11 +114,14 @@ public:
     uint8_t     buffer[SRSUE_MAX_BUFFER_SIZE_BYTES];
     uint8_t    *msg;
     bpt::ptime  timestamp;
+    uint32_t     opt, opt2; 
 
     byte_buffer_t():N_bytes(0)
     {
-      msg = &buffer[SRSUE_BUFFER_HEADER_OFFSET];
+      msg  = &buffer[SRSUE_BUFFER_HEADER_OFFSET];
       next = NULL; 
+      opt  = 0; 
+      opt2 = 0; 
     }
     byte_buffer_t(const byte_buffer_t& buf)
     {
